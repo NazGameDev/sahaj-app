@@ -29,7 +29,7 @@ jobs:
     - name: Download & Isolate AI4Bharat Model Zip
       run: |
         python -c "from ai4bharat.transliteration import XlitEngine; XlitEngine('as', beam_width=4, rescore=False)"
-        python -c "import os, shutil, site; pkg_dir = site.getsitepackages()[0]; src_zip = os.path.join(pkg_dir, 'ai4bharat', 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0', 'model.zip'); os.makedirs('offline_model_cache', exist_ok=True); shutil.copy(src_zip, 'offline_model_cache/model.zip')"
+        python -c "import os, shutil, ai4bharat; pkg_dir = os.path.dirname(ai4bharat.__file__); src_zip = os.path.join(pkg_dir, 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0', 'model.zip'); os.makedirs('offline_model_cache', exist_ok=True); shutil.copy(src_zip, 'offline_model_cache/model.zip')"
 
     - name: Build Executable via PyInstaller
       run: |
