@@ -26,10 +26,10 @@ jobs:
       run: |
         pip install PyQt6 requests ai4bharat-transliteration pyinstaller
 
-    - name: Download & Isolate AI4Bharat Model Zip
+    - name: Download & Copy Extracted AI4Bharat Models
       run: |
         python -c "from ai4bharat.transliteration import XlitEngine; XlitEngine('as', beam_width=4, rescore=False)"
-        python -c "import os, shutil, ai4bharat; pkg_dir = os.path.dirname(ai4bharat.__file__); src_zip = os.path.join(pkg_dir, 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0', 'model.zip'); os.makedirs('offline_model_cache', exist_ok=True); shutil.copy(src_zip, 'offline_model_cache/model.zip')"
+        python -c "import os, shutil, ai4bharat; pkg_dir = os.path.dirname(ai4bharat.__file__); v1_dir = os.path.join(pkg_dir, 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0'); os.makedirs('offline_model_cache', exist_ok=True); shutil.copytree(v1_dir, 'offline_model_cache', dirs_exist_ok=True)"
 
     - name: Build Executable via PyInstaller
       run: |
