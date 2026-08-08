@@ -9,6 +9,28 @@ import difflib
 import unicodedata
 import shutil
 
+
+def setup_offline_ai4bharat():
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.dirname(__file__)
+
+    # Target path where ai4bharat looks for the model file
+    target_v1_dir = os.path.join(os.path.expanduser('~'), '.ai4bharat', 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0')
+    target_zip = os.path.join(target_v1_dir, 'model.zip')
+
+    # If the model zip isn't on the C-drive yet, copy it from the bundled folder
+    if not os.path.exists(target_zip):
+        os.makedirs(target_v1_dir, exist_ok=True)
+        bundled_zip = os.path.join(base_path, 'offline_model_cache', 'model.zip')
+        if os.path.exists(bundled_zip):
+            try:
+                shutil.copy(bundled_zip, target_zip)
+            except Exception as e:
+                print(f"Failed to setup offline model: {e}")
+
+setup_offline_ai4bharat()
 # --- AI4BHARAT XLIT ENGINE IMPORT ---
 try:
     from ai4bharat.transliteration import XlitEngine
