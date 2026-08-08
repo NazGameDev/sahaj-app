@@ -26,14 +26,14 @@ jobs:
       run: |
         pip install PyQt6 requests ai4bharat-transliteration pyinstaller
 
-    - name: Download & Copy AI4Bharat Models Locally
+    - name: Download & Isolate AI4Bharat Model Zip
       run: |
         python -c "from ai4bharat.transliteration import XlitEngine; XlitEngine('as', beam_width=4, rescore=False)"
-        python -c "import shutil, os, ai4bharat; shutil.copytree(os.path.dirname(ai4bharat.__file__), 'ai4bharat_models', dirs_exist_ok=True)"
+        python -c "import os, shutil, site; pkg_dir = site.getsitepackages()[0]; src_zip = os.path.join(pkg_dir, 'ai4bharat', 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0', 'model.zip'); os.makedirs('offline_model_cache', exist_ok=True); shutil.copy(src_zip, 'offline_model_cache/model.zip')"
 
     - name: Build Executable via PyInstaller
       run: |
-        pyinstaller --noconfirm --onedir --windowed --add-data "assamese_dictionary.txt;." --add-data "dictionary.json;." --add-data "Nirmala.ttf;." --add-data "Banikanta.ttf;." --add-data "header_logo.png;." --add-data "header_icon.png;." --add-data "splash_animation.gif;." --add-data "donate_qr.png;." --add-data "ai4bharat_models;ai4bharat_models" main.py
+        pyinstaller --noconfirm --onedir --windowed --add-data "assamese_dictionary.txt;." --add-data "dictionary.json;." --add-data "Nirmala.ttf;." --add-data "Banikanta.ttf;." --add-data "header_logo.png;." --add-data "header_icon.png;." --add-data "splash_animation.gif;." --add-data "donate_qr.png;." --add-data "offline_model_cache;offline_model_cache" main.py
 
     - name: Zip Final Build Folder
       run: |
