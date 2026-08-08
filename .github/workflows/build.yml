@@ -29,7 +29,7 @@ jobs:
     - name: Download & Copy AI4Bharat Models Locally
       run: |
         python -c "from ai4bharat.transliteration import XlitEngine; XlitEngine('as', beam_width=4, rescore=False)"
-        python -c "import shutil, site, os; src = os.path.join(site.getsitepackages()[0], 'ai4bharat'); shutil.copytree(src, 'ai4bharat_models', dirs_exist_ok=True)"
+        python -c "import shutil, os, ai4bharat; shutil.copytree(os.path.dirname(ai4bharat.__file__), 'ai4bharat_models', dirs_exist_ok=True)"
 
     - name: Build Executable via PyInstaller
       run: |
