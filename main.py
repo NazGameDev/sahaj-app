@@ -41,20 +41,6 @@ try:
 except ImportError:
     HAS_XLIT = False
 
-# --- 1. DIRECTORY PATHING SETUP ---
-if getattr(sys, 'frozen', False):
-    BASE_DIR = os.path.dirname(sys.executable)
-    # Automatically unpack bundled AI4Bharat models if running offline for the first time
-    bundled_models = os.path.join(sys._MEIPASS, "ai4bharat_models")
-    target_models = os.path.expanduser("~/.ai4bharat")
-    if os.path.exists(bundled_models) and not os.path.exists(target_models):
-        try:
-            shutil.copytree(bundled_models, target_models)
-        except Exception as e:
-            print("Could not copy bundled AI4Bharat models:", e)
-else:
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 from PyQt6.QtGui import QFontDatabase
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel,
                              QInputDialog, QMessageBox, QListWidget, QScrollArea, QMenu, QToolTip, QSplashScreen, QDialog, QLineEdit)
