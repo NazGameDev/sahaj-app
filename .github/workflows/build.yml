@@ -28,10 +28,10 @@ jobs:
 
     - name: Download & Copy Extracted AI4Bharat Models
       run: |
-        # Force download of the Assamese model
+        # Force download of the Assamese model (it will be saved inside the package)
         python -c "from ai4bharat.transliteration import XlitEngine; XlitEngine('as', beam_width=4, rescore=False)"
-        # Copy the downloaded model from the user's home directory to the cache folder
-        python -c "import os, shutil; src = os.path.expanduser('~/.ai4bharat/transliteration/transformer/models/en2indic/v1.0'); os.makedirs('offline_model_cache', exist_ok=True); shutil.copytree(src, 'offline_model_cache', dirs_exist_ok=True)"
+        # Copy from the package directory to our cache folder
+        python -c "import os, shutil, ai4bharat; pkg_dir = os.path.dirname(ai4bharat.__file__); v1_dir = os.path.join(pkg_dir, 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0'); os.makedirs('offline_model_cache', exist_ok=True); shutil.copytree(v1_dir, 'offline_model_cache', dirs_exist_ok=True)"
 
     - name: Build Executable via PyInstaller
       run: |
