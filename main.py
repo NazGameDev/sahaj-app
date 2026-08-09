@@ -20,17 +20,26 @@ def setup_offline_ai4bharat():
     target_v1_dir = os.path.join(target_root, 'v1.0')
     bundled_cache = os.path.join(base_path, 'offline_model_cache')
 
-    # Check if bundled cache exists
+    # 1. Check bundled cache exists
     if not os.path.exists(bundled_cache):
         print("ERROR: offline_model_cache not found in the executable bundle!")
         return
 
-    # Check if the target models are already valid (contains the main model file)
-    model_pt_path = os.path.join(target_v1_dir, 'model.pt')
-    is_valid = os.path.exists(model_pt_path) and os.path.getsize(model_pt_path) > 1000
+    # 2. Define required files (the engine needs these to work)
+    required_files = ['model.pt', 'vocab.txt', 'dict.txt']
+    is_valid = True
+
+    if os.path.exists(target_v1_dir):
+        for f in required_files:
+            file_path = os.path.join(target_v1_dir, f)
+            if not os.path.exists(file_path) or os.path.getsize(file_path) < 1000:
+                is_valid = False
+                break
+    else:
+        is_valid = False
 
     if not is_valid:
-        # If the target folder exists but is invalid (empty/corrupt), delete it
+        # Remove the old folder (even if it has some files, they are invalid)
         if os.path.exists(target_v1_dir):
             try:
                 shutil.rmtree(target_v1_dir)
@@ -38,23 +47,21 @@ def setup_offline_ai4bharat():
             except Exception as e:
                 print(f"Could not remove invalid target folder: {e}")
 
-        # Now copy fresh models from the bundled cache
+        # Copy fresh models
         try:
             os.makedirs(target_root, exist_ok=True)
             shutil.copytree(bundled_cache, target_v1_dir, dirs_exist_ok=True)
             print(f"Offline models successfully copied to {target_v1_dir}")
+
+            # Verify again after copy
+            for f in required_files:
+                file_path = os.path.join(target_v1_dir, f)
+                if not os.path.exists(file_path):
+                    raise Exception(f"Missing required file after copy: {f}")
+
+            print("All required model files are present.")
         except Exception as e:
-            print(f"Failed to copy offline models: {e}")
-            # Show a popup error so the user knows immediately
-            try:
-                from PyQt6.QtWidgets import QMessageBox
-                QMessageBox.warning(
-                    None,
-                    "Model Setup Error",
-                    f"Failed to copy offline AI models.\n\nError: {e}\n\nPlease check folder permissions."
-                )
-            except:
-                pass
+            print(f"CRITICAL: Failed to copy offline models: {e}")
     else:
         print(f"Offline models already valid at {target_v1_dir}")
 
@@ -1002,6 +1009,7 @@ class DraggableButton(QPushButton):
 # --- ASYNCHRONOUS BACKEND LOADER WITH XLIT ENGINE ---
 class AppLoaderThread(QThread):
     finished_loading = pyqtSignal(object, dict, object)
+    error_signal = pyqtSignal(str)   # <--- New signal for errors
 
     def __init__(self, dictionary_file, dict_path):
         super().__init__()
@@ -1036,17 +1044,11 @@ class AppLoaderThread(QThread):
                 else:
                     print("XlitEngine initialized but returned empty test result.")
             except Exception as e:
-                print("Failed to initialize AI4Bharat XlitEngine:", e)
-                # Show a popup to the user
-                try:
-                    from PyQt6.QtWidgets import QMessageBox
-                    QMessageBox.warning(
-                        None,
-                        "Engine Error",
-                        f"Failed to load the AI transliteration engine.\n\nError: {e}\n\nPlease check if models are properly installed."
-                    )
-                except:
-                    pass
+                error_msg = f"Failed to load the AI transliteration engine.\n\nError: {str(e)}\n\nPlease check if models are properly installed."
+                print(error_msg)
+                # Emit signal instead of showing dialog directly (safe!)
+                self.error_signal.emit(error_msg)
+                xlit_engine = None  # Fallback to Google will happen
 
         self.finished_loading.emit(spell_tool, dictionary, xlit_engine)
 
@@ -1078,6 +1080,7 @@ class AssameseTypingApp(QMainWindow):
 
         self.loader_thread = AppLoaderThread(self.dictionary_file, resource_path("assamese_dictionary.txt"))
         self.loader_thread.finished_loading.connect(self.on_backend_loaded)
+		self.loader_thread.error_signal.connect(self.show_engine_error)
         self.loader_thread.start()
 
         self.init_ui()
@@ -1104,6 +1107,10 @@ class AssameseTypingApp(QMainWindow):
             QMessageBox.warning(self, "Spell Check Disabled",
                                 "Could not load the bundled dictionary.\nSpell checking will be disabled.")
         self.check_spelling()
+		
+	def show_engine_error(self, message):
+    # This runs on the main GUI thread – safe to show popups!
+    QMessageBox.critical(self, "AI Engine Error", message)
 
     def init_ui(self):
         main_widget = QWidget()
