@@ -1077,12 +1077,10 @@ class AssameseTypingApp(QMainWindow):
         self.meaning_cache = {}
         self.ignored_error_ranges = set()
         self.phonetic_enabled = True
-
         self.loader_thread = AppLoaderThread(self.dictionary_file, resource_path("assamese_dictionary.txt"))
         self.loader_thread.finished_loading.connect(self.on_backend_loaded)
-		self.loader_thread.error_signal.connect(self.show_engine_error)
+        self.loader_thread.error_signal.connect(self.show_engine_error)
         self.loader_thread.start()
-
         self.init_ui()
         self.load_autosave()
         self.load_helper_buttons()
@@ -1107,10 +1105,10 @@ class AssameseTypingApp(QMainWindow):
             QMessageBox.warning(self, "Spell Check Disabled",
                                 "Could not load the bundled dictionary.\nSpell checking will be disabled.")
         self.check_spelling()
-		
-	def show_engine_error(self, message):
-    # This runs on the main GUI thread – safe to show popups!
-    QMessageBox.critical(self, "AI Engine Error", message)
+        
+    def show_engine_error(self, message):
+        # This runs on the main GUI thread – safe to show popups!
+        QMessageBox.critical(self, "AI Engine Error", message)
 
     def init_ui(self):
         main_widget = QWidget()
