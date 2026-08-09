@@ -33,13 +33,18 @@ jobs:
         # Copy from the package directory to our cache folder
         python -c "import os, shutil, ai4bharat; pkg_dir = os.path.dirname(ai4bharat.__file__); v1_dir = os.path.join(pkg_dir, 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0'); os.makedirs('offline_model_cache', exist_ok=True); shutil.copytree(v1_dir, 'offline_model_cache', dirs_exist_ok=True)"
 
+    - name: Copy lang_list.txt for bundling
+      run: |
+        python -c "import os, shutil, ai4bharat; pkg_dir = os.path.dirname(ai4bharat.__file__); src = os.path.join(pkg_dir, 'transliteration', 'transformer', 'models', 'en2indic', 'lang_list.txt'); shutil.copy2(src, 'lang_list.txt')"
+
     - name: List cached model files (debugging)
       run: |
         dir offline_model_cache
+        dir lang_list.txt
 
     - name: Build Executable via PyInstaller
       run: |
-        pyinstaller --noconfirm --onedir --windowed --add-data "assamese_dictionary.txt;." --add-data "dictionary.json;." --add-data "Nirmala.ttf;." --add-data "Banikanta.ttf;." --add-data "header_logo.png;." --add-data "header_icon.png;." --add-data "splash_animation.gif;." --add-data "donate_qr.png;." --add-data "offline_model_cache;offline_model_cache" main.py
+        pyinstaller --noconfirm --onedir --windowed --add-data "assamese_dictionary.txt;." --add-data "dictionary.json;." --add-data "Nirmala.ttf;." --add-data "Banikanta.ttf;." --add-data "header_logo.png;." --add-data "header_icon.png;." --add-data "splash_animation.gif;." --add-data "donate_qr.png;." --add-data "offline_model_cache;offline_model_cache" --add-data "lang_list.txt;ai4bharat/transliteration/transformer/models/en2indic" main.py
 
     - name: Zip Final Build Folder
       run: |
