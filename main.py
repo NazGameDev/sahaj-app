@@ -16,9 +16,27 @@ def setup_offline_ai4bharat():
     else:
         base_path = os.path.dirname(__file__)
 
-    target_v1_dir = os.path.join(os.path.expanduser('~'), '.ai4bharat', 'transliteration', 'transformer', 'models', 'en2indic', 'v1.0')
+    target_v1_dir = os.path.join(
+        os.path.expanduser('~'),
+        '.ai4bharat',
+        'transliteration',
+        'transformer',
+        'models',
+        'en2indic',
+        'v1.0'
+    )
     bundled_cache = os.path.join(base_path, 'offline_model_cache')
 
+    # If target exists but is empty, delete it so we can copy fresh files
+    if os.path.exists(target_v1_dir):
+        try:
+            if not os.listdir(target_v1_dir):
+                shutil.rmtree(target_v1_dir)
+                print("Removed empty target model folder.")
+        except Exception as e:
+            print("Could not check/remove empty target folder:", e)
+
+    # If we have bundled models and target does NOT exist, copy them
     if os.path.exists(bundled_cache) and not os.path.exists(target_v1_dir):
         try:
             os.makedirs(target_v1_dir, exist_ok=True)
@@ -29,8 +47,21 @@ def setup_offline_ai4bharat():
                     shutil.copytree(s, d, dirs_exist_ok=True)
                 else:
                     shutil.copy2(s, d)
+            print("Offline models successfully installed to", target_v1_dir)
         except Exception as e:
-            print(f"Failed to setup offline models: {e}")
+            print("Failed to setup offline models:", e)
+            # Show a popup error so the user knows immediately
+            try:
+                from PyQt6.QtWidgets import QMessageBox
+                QMessageBox.warning(
+                    None,
+                    "Model Setup Error",
+                    f"Failed to setup offline AI models.\n\nError: {e}\n\nPlease check if 'offline_model_cache' exists in the app folder."
+                )
+            except:
+                pass
+    elif not os.path.exists(bundled_cache):
+        print("WARNING: Bundled cache folder not found at", bundled_cache)
 
 setup_offline_ai4bharat()
 
