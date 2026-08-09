@@ -16,52 +16,47 @@ def setup_offline_ai4bharat():
     else:
         base_path = os.path.dirname(__file__)
 
-    target_v1_dir = os.path.join(
-        os.path.expanduser('~'),
-        '.ai4bharat',
-        'transliteration',
-        'transformer',
-        'models',
-        'en2indic',
-        'v1.0'
-    )
+    target_root = os.path.join(os.path.expanduser('~'), '.ai4bharat', 'transliteration', 'transformer', 'models', 'en2indic')
+    target_v1_dir = os.path.join(target_root, 'v1.0')
     bundled_cache = os.path.join(base_path, 'offline_model_cache')
 
-    # If target exists but is empty, delete it so we can copy fresh files
-    if os.path.exists(target_v1_dir):
-        try:
-            if not os.listdir(target_v1_dir):
-                shutil.rmtree(target_v1_dir)
-                print("Removed empty target model folder.")
-        except Exception as e:
-            print("Could not check/remove empty target folder:", e)
+    # Check if bundled cache exists
+    if not os.path.exists(bundled_cache):
+        print("ERROR: offline_model_cache not found in the executable bundle!")
+        return
 
-    # If we have bundled models and target does NOT exist, copy them
-    if os.path.exists(bundled_cache) and not os.path.exists(target_v1_dir):
+    # Check if the target models are already valid (contains the main model file)
+    model_pt_path = os.path.join(target_v1_dir, 'model.pt')
+    is_valid = os.path.exists(model_pt_path) and os.path.getsize(model_pt_path) > 1000
+
+    if not is_valid:
+        # If the target folder exists but is invalid (empty/corrupt), delete it
+        if os.path.exists(target_v1_dir):
+            try:
+                shutil.rmtree(target_v1_dir)
+                print("Removed invalid/empty target model folder.")
+            except Exception as e:
+                print(f"Could not remove invalid target folder: {e}")
+
+        # Now copy fresh models from the bundled cache
         try:
-            os.makedirs(target_v1_dir, exist_ok=True)
-            for item in os.listdir(bundled_cache):
-                s = os.path.join(bundled_cache, item)
-                d = os.path.join(target_v1_dir, item)
-                if os.path.isdir(s):
-                    shutil.copytree(s, d, dirs_exist_ok=True)
-                else:
-                    shutil.copy2(s, d)
-            print("Offline models successfully installed to", target_v1_dir)
+            os.makedirs(target_root, exist_ok=True)
+            shutil.copytree(bundled_cache, target_v1_dir, dirs_exist_ok=True)
+            print(f"Offline models successfully copied to {target_v1_dir}")
         except Exception as e:
-            print("Failed to setup offline models:", e)
+            print(f"Failed to copy offline models: {e}")
             # Show a popup error so the user knows immediately
             try:
                 from PyQt6.QtWidgets import QMessageBox
                 QMessageBox.warning(
                     None,
                     "Model Setup Error",
-                    f"Failed to setup offline AI models.\n\nError: {e}\n\nPlease check if 'offline_model_cache' exists in the app folder."
+                    f"Failed to copy offline AI models.\n\nError: {e}\n\nPlease check folder permissions."
                 )
             except:
                 pass
-    elif not os.path.exists(bundled_cache):
-        print("WARNING: Bundled cache folder not found at", bundled_cache)
+    else:
+        print(f"Offline models already valid at {target_v1_dir}")
 
 setup_offline_ai4bharat()
 
@@ -1034,8 +1029,24 @@ class AppLoaderThread(QThread):
         if HAS_XLIT:
             try:
                 xlit_engine = XlitEngine("as", beam_width=4, rescore=False)
+                # Quick test to ensure it works
+                test = xlit_engine.translit_word("test", topk=1)
+                if test:
+                    print("XlitEngine initialized successfully.")
+                else:
+                    print("XlitEngine initialized but returned empty test result.")
             except Exception as e:
                 print("Failed to initialize AI4Bharat XlitEngine:", e)
+                # Show a popup to the user
+                try:
+                    from PyQt6.QtWidgets import QMessageBox
+                    QMessageBox.warning(
+                        None,
+                        "Engine Error",
+                        f"Failed to load the AI transliteration engine.\n\nError: {e}\n\nPlease check if models are properly installed."
+                    )
+                except:
+                    pass
 
         self.finished_loading.emit(spell_tool, dictionary, xlit_engine)
 
