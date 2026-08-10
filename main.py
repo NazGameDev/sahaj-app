@@ -1044,11 +1044,17 @@ class AppLoaderThread(QThread):
                 else:
                     print("XlitEngine initialized but returned empty test result.")
             except Exception as e:
+                import traceback
                 error_msg = f"Failed to load the AI transliteration engine.\n\nError: {str(e)}\n\nPlease check if models are properly installed."
                 print(error_msg)
-                # Emit signal instead of showing dialog directly (safe!)
-                self.error_signal.emit(error_msg)
-                xlit_engine = None  # Fallback to Google will happen
+                # Write full traceback to a log file
+                log_path = os.path.join(os.path.expanduser('~'), 'sahaj_error.log')
+                with open(log_path, 'w', encoding='utf-8') as f:
+                    traceback.print_exc(file=f)
+                # Emit error signal with the full traceback
+                full_error = traceback.format_exc()
+                self.error_signal.emit(f"{error_msg}\n\nFull traceback:\n{full_error}")
+                xlit_engine = None
 
         self.finished_loading.emit(spell_tool, dictionary, xlit_engine)
 
