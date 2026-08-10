@@ -82,7 +82,7 @@ else:
 
 from PyQt6.QtGui import QFontDatabase
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QTextEdit, QLabel,
-                             QInputDialog, QMessageBox, QListWidget, QScrollArea, QMenu, QToolTip, QSplashScreen, QDialog, QLineEdit)
+                             QInputDialog, QMessageBox, QListWidget, QScrollArea, QMenu, QToolTip, QSplashScreen, QDialog, QLineEdit, QCheckBox)
 from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QMimeData, QPoint, QSettings
 from PyQt6.QtGui import (QFont, QTextCursor, QTextCharFormat, QSyntaxHighlighter, QColor, QDrag, QPixmap, QMovie, QIcon, QCursor)
 
@@ -460,7 +460,7 @@ class DictionarySpellChecker:
 class TranslationWorker(QThread):
     finished = pyqtSignal(list, str)
 
-    def __init__(self, word, xlit_engine=None):
+    def __init__(self, word, xlit_engine=None, mode="google"):
         super().__init__()
         self.word = word
         self.xlit_engine = xlit_engine
