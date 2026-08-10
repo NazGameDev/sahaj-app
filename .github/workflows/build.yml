@@ -24,9 +24,9 @@ jobs:
 
     - name: Install Application Requirements
       run: |
-        pip install PyQt6 requests ai4bharat-transliteration pyinstaller
+        pip install PyQt6 requests ai4bharat-transliteration pyinstaller scikit-learn
 
-    - name: Create patch script for fairseq/dataclass/configs.py
+    - name: Patch fairseq/dataclass/configs.py to fix 'help' error
       run: |
         @"
         import os, sys
@@ -35,16 +35,13 @@ jobs:
         f = fairseq.dataclass.configs.__file__
         with open(f, 'r', encoding='utf-8') as fp:
             content = fp.read()
+        # Only patch if not already patched
         if 'help = ""' not in content:
             with open(f, 'w', encoding='utf-8') as fp:
                 fp.write('help = ""\n' + content)
         print("Patched", f)
         "@ > patch_fairseq.py
         python patch_fairseq.py
-
-    - name: Copy fairseq package for bundling (to include criterions subfolder)
-      run: |
-        python -c "import os, shutil, fairseq; src = os.path.dirname(fairseq.__file__); shutil.copytree(src, 'fairseq_data', dirs_exist_ok=True)"
 
     - name: Download & Copy Extracted AI4Bharat Models
       run: |
@@ -61,11 +58,27 @@ jobs:
       run: |
         dir offline_model_cache
         dir lang_list.txt
-        dir fairseq_data
 
     - name: Build Executable via PyInstaller
       run: |
-        pyinstaller --noconfirm --onedir --windowed --add-data "assamese_dictionary.txt;." --add-data "dictionary.json;." --add-data "Nirmala.ttf;." --add-data "Banikanta.ttf;." --add-data "header_logo.png;." --add-data "header_icon.png;." --add-data "splash_animation.gif;." --add-data "donate_qr.png;." --add-data "lang_list.txt;ai4bharat/transliteration/transformer/models/en2indic" --add-data "offline_model_cache;ai4bharat/transliteration/transformer/models/en2indic/v1.0" --add-data "fairseq_data;fairseq" --hidden-import fairseq --hidden-import hydra --hidden-import omegaconf --hidden-import fairseq.dataclass --hidden-import fairseq.dataclass.configs --hidden-import torch --hidden-import torch.nn --hidden-import numpy main.py
+        pyinstaller --noconfirm --onedir --windowed ^
+          --add-data "assamese_dictionary.txt;." ^
+          --add-data "dictionary.json;." ^
+          --add-data "Nirmala.ttf;." ^
+          --add-data "Banikanta.ttf;." ^
+          --add-data "header_logo.png;." ^
+          --add-data "header_icon.png;." ^
+          --add-data "splash_animation.gif;." ^
+          --add-data "donate_qr.png;." ^
+          --add-data "lang_list.txt;ai4bharat/transliteration/transformer/models/en2indic" ^
+          --add-data "offline_model_cache;ai4bharat/transliteration/transformer/models/en2indic/v1.0" ^
+          --collect-all fairseq ^
+          --collect-all hydra ^
+          --collect-all omegaconf ^
+          --collect-all sklearn ^
+          --collect-all torch ^
+          --collect-all numpy ^
+          main.py
 
     - name: Zip Final Build Folder
       run: |
