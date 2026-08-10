@@ -28,7 +28,7 @@ jobs:
 
     - name: Patch fairseq/dataclass/configs.py to fix 'help' error
       run: |
-        python -c "import os, sys; sys.path.insert(0, os.path.join(sys.prefix, 'Lib', 'site-packages')); import fairseq.dataclass.configs; f = fairseq.dataclass.configs.__file__; content = open(f, 'r', encoding='utf-8').read(); open(f, 'w', encoding='utf-8').write('from builtins import help\n' + content)"
+        python -c "import os, sys; sys.path.insert(0, os.path.join(sys.prefix, 'Lib', 'site-packages')); import fairseq.dataclass.configs; f = fairseq.dataclass.configs.__file__; content = open(f, 'r', encoding='utf-8').read(); open(f, 'w', encoding='utf-8').write('import builtins\nhelp = builtins.help\n' + content)"
 
     - name: Download & Copy Extracted AI4Bharat Models
       run: |
