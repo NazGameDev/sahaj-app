@@ -464,38 +464,74 @@ class TranslationWorker(QThread):
         super().__init__()
         self.word = word
         self.xlit_engine = xlit_engine
+        self.mode = mode
 
     def run(self):
-        # 1. Primary Method: Offline AI4Bharat Xlit Engine
-        if self.xlit_engine:
+        # Determine which engine to try first
+        use_google_first = (self.mode == "google")
+
+        if use_google_first:
+            # Try Google first (online)
             try:
-                res = self.xlit_engine.translit_word(self.word, topk=5)
-                suggestions = []
-                if isinstance(res, dict) and 'as' in res:
-                    suggestions = res['as']
-                elif isinstance(res, dict) and len(res) > 0:
-                    suggestions = list(res.values())[0]
-                elif isinstance(res, list):
-                    suggestions = res
-                
-                if suggestions:
+                url = f"https://inputtools.google.com/request?text={self.word}&itc=as-t-i0-und&num=10&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage"
+                response = session.get(url, timeout=3)
+                data = response.json()
+                if data[0] == "SUCCESS":
+                    suggestions = data[1][0][1]
                     self.finished.emit(suggestions, self.word)
                     return
-            except Exception as e:
-                print("XlitEngine execution error:", e)
+            except Exception:
+                pass  # Google failed, fall through to offline
 
-        # 2. Fallback Method: Online Google Input Tools
-        try:
-            url = f"https://inputtools.google.com/request?text={self.word}&itc=as-t-i0-und&num=10&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage"
-            response = session.get(url, timeout=3)
-            data = response.json()
-            if data[0] == "SUCCESS":
-                suggestions = data[1][0][1]
-                self.finished.emit(suggestions, self.word)
-            else:
-                self.finished.emit([self.word], self.word)
-        except Exception:
-            self.finished.emit([self.word], self.word)
+            # Fallback to AI4Bharat if Google fails
+            if self.xlit_engine:
+                try:
+                    res = self.xlit_engine.translit_word(self.word, topk=5)
+                    suggestions = []
+                    if isinstance(res, dict) and 'as' in res:
+                        suggestions = res['as']
+                    elif isinstance(res, dict) and len(res) > 0:
+                        suggestions = list(res.values())[0]
+                    elif isinstance(res, list):
+                        suggestions = res
+                    if suggestions:
+                        self.finished.emit(suggestions, self.word)
+                        return
+                except Exception as e:
+                    print("XlitEngine execution error:", e)
+
+        else:
+            # Offline mode: try AI4Bharat first
+            if self.xlit_engine:
+                try:
+                    res = self.xlit_engine.translit_word(self.word, topk=5)
+                    suggestions = []
+                    if isinstance(res, dict) and 'as' in res:
+                        suggestions = res['as']
+                    elif isinstance(res, dict) and len(res) > 0:
+                        suggestions = list(res.values())[0]
+                    elif isinstance(res, list):
+                        suggestions = res
+                    if suggestions:
+                        self.finished.emit(suggestions, self.word)
+                        return
+                except Exception as e:
+                    print("XlitEngine execution error:", e)
+
+            # Fallback to Google (if offline engine fails)
+            try:
+                url = f"https://inputtools.google.com/request?text={self.word}&itc=as-t-i0-und&num=10&cp=0&cs=1&ie=utf-8&oe=utf-8&app=demopage"
+                response = session.get(url, timeout=3)
+                data = response.json()
+                if data[0] == "SUCCESS":
+                    suggestions = data[1][0][1]
+                    self.finished.emit(suggestions, self.word)
+                    return
+            except Exception:
+                pass
+
+        # Final fallback: return the word itself
+        self.finished.emit([self.word], self.word)
 
 
 class NetworkCheckWorker(QThread):
@@ -736,7 +772,9 @@ class PhoneticTextEdit(QTextEdit):
     def fetch_translation(self, word):
         main_win = self.window()
         xlit_engine = getattr(main_win, 'xlit_engine', None)
-        self.translator = TranslationWorker(word, xlit_engine=xlit_engine)
+        # Get the current translation mode from the main window
+        mode = getattr(main_win, 'translation_mode', 'google')
+        self.translator = TranslationWorker(word, xlit_engine=xlit_engine, mode=mode)
         self.translator.finished.connect(self.handle_translation)
         self.translator.start()
 
@@ -1083,6 +1121,7 @@ class AssameseTypingApp(QMainWindow):
         self.meaning_cache = {}
         self.ignored_error_ranges = set()
         self.phonetic_enabled = True
+        self.translation_mode = "google"
         self.loader_thread = AppLoaderThread(self.dictionary_file, resource_path("assamese_dictionary.txt"))
         self.loader_thread.finished_loading.connect(self.on_backend_loaded)
         self.loader_thread.error_signal.connect(self.show_engine_error)
@@ -1102,6 +1141,15 @@ class AssameseTypingApp(QMainWindow):
         self.spell_timer.timeout.connect(lambda: self.check_spelling())
         self.text_area.textChanged.connect(lambda: self.spell_timer.start(2500))
         self.check_spelling()
+
+    def toggle_engine(self, checked):
+    """Toggle between Live AI (Google) and Built-in AI (Offline)"""
+        if checked:
+            self.engine_toggle.setText("Live AI")
+            self.translation_mode = "google"
+        else:
+            self.engine_toggle.setText("Built-in AI")
+            self.translation_mode = "offline"
 
     def on_backend_loaded(self, spell_tool, dictionary, xlit_engine):
         self.spell_tool = spell_tool
@@ -1222,7 +1270,30 @@ class AssameseTypingApp(QMainWindow):
             }
         """)
         self.phonetic_btn.toggled.connect(self.toggle_phonetic)
-
+        
+        self.engine_toggle = QCheckBox("Live AI")
+        self.engine_toggle.setChecked(True)  # Default: Live AI (Google)
+        self.engine_toggle.setToolTip("Toggle between Live AI (Google) and Built-in AI (Offline)")
+        self.engine_toggle.setStyleSheet("""
+            QCheckBox {
+                font-weight: bold;
+                color: #0D6EFD;
+            }
+            QCheckBox::indicator {
+                width: 40px;
+                height: 20px;
+                border-radius: 10px;
+                background-color: #6C757D;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #0D6EFD;
+            }
+            QCheckBox::indicator:unchecked {
+                background-color: #6C757D;
+            }
+        """)
+        
+        self.engine_toggle.toggled.connect(self.toggle_engine)
         undo_btn = QPushButton("Undo")
         redo_btn = QPushButton("Redo")
         redo_btn.setToolTip("Redo last undone change (Ctrl+Y)")
@@ -1247,6 +1318,7 @@ class AssameseTypingApp(QMainWindow):
         toolbar.addWidget(clear_btn)
         toolbar.addWidget(self.copy_btn)
         toolbar.addWidget(self.phonetic_btn)
+        toolbar.addWidget(self.engine_toggle)
         toolbar.addWidget(undo_btn)
         toolbar.addWidget(redo_btn)
         toolbar.addWidget(inc_font_btn)
