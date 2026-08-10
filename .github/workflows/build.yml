@@ -44,18 +44,7 @@ jobs:
 
     - name: Build Executable via PyInstaller
       run: |
-        pyinstaller --noconfirm --onedir --windowed ^
-          --add-data "assamese_dictionary.txt;." ^
-          --add-data "dictionary.json;." ^
-          --add-data "Nirmala.ttf;." ^
-          --add-data "Banikanta.ttf;." ^
-          --add-data "header_logo.png;." ^
-          --add-data "header_icon.png;." ^
-          --add-data "splash_animation.gif;." ^
-          --add-data "donate_qr.png;." ^
-          --add-data "lang_list.txt;ai4bharat/transliteration/transformer/models/en2indic" ^
-          --add-data "offline_model_cache;ai4bharat/transliteration/transformer/models/en2indic/v1.0" ^
-          main.py
+        pyinstaller --noconfirm --onedir --windowed --add-data "assamese_dictionary.txt;." --add-data "dictionary.json;." --add-data "Nirmala.ttf;." --add-data "Banikanta.ttf;." --add-data "header_logo.png;." --add-data "header_icon.png;." --add-data "splash_animation.gif;." --add-data "donate_qr.png;." --add-data "lang_list.txt;ai4bharat/transliteration/transformer/models/en2indic" --add-data "offline_model_cache;ai4bharat/transliteration/transformer/models/en2indic/v1.0" main.py
 
     - name: Zip Final Build Folder
       run: |
