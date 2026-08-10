@@ -1143,7 +1143,7 @@ class AssameseTypingApp(QMainWindow):
         self.check_spelling()
 
     def toggle_engine(self, checked):
-    """Toggle between Live AI (Google) and Built-in AI (Offline)"""
+        """Toggle between Live AI (Google) and Built-in AI (Offline)"""
         if checked:
             self.engine_toggle.setText("Live AI")
             self.translation_mode = "google"
