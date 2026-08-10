@@ -26,9 +26,22 @@ jobs:
       run: |
         pip install PyQt6 requests ai4bharat-transliteration pyinstaller
 
-    - name: Patch fairseq/dataclass/configs.py to define 'help' variable
+    - name: Create patch script for fairseq/dataclass/configs.py
       run: |
-        python -c "import os, sys; sys.path.insert(0, os.path.join(sys.prefix, 'Lib', 'site-packages')); import fairseq.dataclass.configs; f = fairseq.dataclass.configs.__file__; content = open(f, 'r', encoding='utf-8').read(); open(f, 'w', encoding='utf-8').write('help = \"\"\n' + content)"
+        @"
+        import os, sys
+        sys.path.insert(0, os.path.join(sys.prefix, 'Lib', 'site-packages'))
+        import fairseq.dataclass.configs
+        f = fairseq.dataclass.configs.__file__
+        with open(f, 'r', encoding='utf-8') as fp:
+            content = fp.read()
+        # Only patch if not already patched
+        if 'help = ""' not in content:
+            with open(f, 'w', encoding='utf-8') as fp:
+                fp.write('help = ""\n' + content)
+        print("Patched", f)
+        "@ > patch_fairseq.py
+        python patch_fairseq.py
 
     - name: Download & Copy Extracted AI4Bharat Models
       run: |
