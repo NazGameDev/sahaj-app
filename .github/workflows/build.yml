@@ -26,9 +26,9 @@ jobs:
       run: |
         pip install PyQt6 requests ai4bharat-transliteration pyinstaller
 
-    - name: Patch fairseq/dataclass/configs.py to define help
+    - name: Patch fairseq/dataclass/configs.py to fix 'help' error
       run: |
-        python -c "import os, sys; sys.path.insert(0, os.path.join(sys.prefix, 'Lib', 'site-packages')); import fairseq.dataclass.configs; f = fairseq.dataclass.configs.__file__; content = open(f, 'r', encoding='utf-8').read(); open(f, 'w', encoding='utf-8').write('help = None\n' + content)"
+        python -c "import os, sys; sys.path.insert(0, os.path.join(sys.prefix, 'Lib', 'site-packages')); import fairseq.dataclass.configs; f = fairseq.dataclass.configs.__file__; content = open(f, 'r', encoding='utf-8').read(); open(f, 'w', encoding='utf-8').write('import builtins\nhelp = builtins.help\n' + content)"
 
     - name: Download & Copy Extracted AI4Bharat Models
       run: |
@@ -48,7 +48,7 @@ jobs:
 
     - name: Build Executable via PyInstaller
       run: |
-        pyinstaller --noconfirm --onedir --windowed --add-data "assamese_dictionary.txt;." --add-data "dictionary.json;." --add-data "Nirmala.ttf;." --add-data "Banikanta.ttf;." --add-data "header_logo.png;." --add-data "header_icon.png;." --add-data "splash_animation.gif;." --add-data "donate_qr.png;." --add-data "lang_list.txt;ai4bharat/transliteration/transformer/models/en2indic" --add-data "offline_model_cache;ai4bharat/transliteration/transformer/models/en2indic/v1.0" --hidden-import fairseq --hidden-import hydra --hidden-import omegaconf --hidden-import fairseq.dataclass --hidden-import fairseq.dataclass.configs --hidden-import torch --hidden-import torch.nn --hidden-import numpy main.py
+        pyinstaller --noconfirm --onedir --windowed --add-data "assamese_dictionary.txt;." --add-data "dictionary.json;." --add-data "Nirmala.ttf;." --add-data "Banikanta.ttf;." --add-data "header_logo.png;." --add-data "header_icon.png;." --add-data "splash_animation.gif;." --add-data "donate_qr.png;." --add-data "lang_list.txt;ai4bharat/transliteration/transformer/models/en2indic" --add-data "offline_model_cache;ai4bharat/transliteration/transformer/models/en2indic/v1.0" --collect-all fairseq --hidden-import hydra --hidden-import omegaconf --hidden-import torch --hidden-import torch.nn --hidden-import numpy main.py
 
     - name: Zip Final Build Folder
       run: |
